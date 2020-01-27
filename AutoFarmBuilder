@@ -1,0 +1,297 @@
+//Version 0.1 
+
+// SETTINGS--------------------------------------------------------------------
+//-------------- Not Done-------------------------------
+//oneMinute      = 60
+//fifteenMinutes = 15 * oneMinute
+//oneHour        = 60 * oneMinute
+//eightHours     =  8 * oneHour
+//tenHours       = 10 * oneHour
+//-------------- Not Done-------------------------------
+time = "@06h21" // Use NJT Time (see on the left below the + ScriptButton)
+min_ressources_to_attack = 1000000
+min_rank_to_attack = 0
+esp_probes_for_scans = 50 // Amount of Spy Probes to use
+//Settings to make it more human:
+use_random_probnumber = false // Set false/true :Randomizeses around your esp_probes_for_scan value by -1 , +1, 
+randomize_attack_sys = 10 // Example: 10 randomizes all of your set ranges below by -10 , +10
+
+//This is most important part (PLEASE READ CAREFULLY): 
+//Step 1: Put exactly [] inside planets_range as you have planets. 
+//Example: You have 4 planets:  planets_range = [ [],[],[],[] ]
+//Note: The planets from left to right ARE the planets from top to bottom on your screen. 
+//Warning: When you change the order of the planets in your screen, you have to change the order in the list also!
+//Step 2: Put the attack range for every planet. Empty [] slots will be excluded from session creation
+//Example:planets_range= [ [100,300],[1,499], [] ,[200,400] ]  -> there will not be any sessions for the 3th PlanetBuildingsArr
+//Step 3: You must do the same for moons_range
+
+planets_range = [ [50,150],[50,150],[150,250],[250,350],[150,250],[] ,[350,450] ,[] ,[]] // This is my setup for 8 Planets
+moons_range = [[],[],[],[],[],[]]  // I have no moons so this is empty
+func autofarm() {
+
+// SETTINGS DONE----------------------------------------------------------------
+// Common Mistakes:
+// 1: Not correct numbers of [] as you have planets/moons 
+// 2: Forgetting a "," between two entries []
+// 3: Not updating lists after colonization and/or getting a moon
+// _____________________________________________________________________________
+
+// FINAL NOTE:
+// Choose settings so that you are finished by the time this script is called again
+// Thus, your farming sessions will not accumulate if you are gone for a few days
+
+
+//__________________ DONT WORRY ABOUT THIS PART AND BELOW_______________________
+
+   
+    //ERROR Handler
+    Planets = GetPlanets()
+    Moons = GetMoons()
+    //This is will spit out an error and stop the script, if you have more or less entries in planets_to_attack than actual planets
+    if(len(planets_range) != len(Planets)){
+        print("You don't have as many planet entries as you have Planets!!")
+        print("Did you colonized a new planet recently??")
+    }
+    if(planets_range != []){
+       planets_range[len(Planets)-1] 
+    }
+    if(planets_range == []){
+        print("You forgot to put in any slots for planets_range.. You must atleast have 1 planet right?")
+        planets_range[len(Planets)-1] 
+    }
+    if(len(moons_range) != len(Moons)){
+        print("You don't have as many moon entries as you have Moons!!")
+        print("Did you get a moon recently?")
+    }
+    if(moons_range != []){
+       moons_range[len(Moons)-1]
+    }
+    
+    i=0
+    for moon in Moons {
+        if(use_random_probnumber == true){
+            esp_probes_for_scans = Random(esp_probes_for_scans-1,esp_probes_for_scans+1)
+        }
+        sys_a = 0
+        sys_b = 0
+        if(moons_range[i] != []){
+            celestial = GetCachedCelestial(moon.Coordinate)
+            coordinate = celestial.GetCoordinate()
+            galaxy = coordinate.Galaxy
+            sys_a=moons_range[i][0] + Random(-randomize_attack_sys,randomize_attack_sys)    
+            if(sys_a < 1){
+                sys_a = 1
+            }
+            if(sys_a > 499){
+                sys_a = 499
+            }
+            sys_b=moons_range[i][1]  + Random(-randomize_attack_sys,randomize_attack_sys)   
+            if(sys_b < 1){
+                sys_b = 1
+            }
+            if(sys_b > 499){
+                sys_b = 499
+            }
+            NewFarmingSession(moon.GetID(), galaxy,  sys_a,  sys_b, esp_probes_for_scans, 0,min_ressources_to_attack, 0, 0, 0, 0, min_rank_to_attack, false, false, false, false, HUNDRED_PERCENT, 1, 2, 3)
+            }
+        i = i+1
+    }
+    i=0;
+    for planet in Planets {
+        if(use_random_probnumber == true){
+            esp_probes_for_scans = Random(esp_probes_for_scans-1,esp_probes_for_scans+1)
+        }
+        sys_a = 0
+        sys_b = 0
+        if(planets_range[i] != []){
+            celestial = GetCachedCelestial(planet.Coordinate)
+            coordinate = celestial.GetCoordinate()
+            galaxy = coordinate.Galaxy
+            sys_a=planets_range[i][0] + Random(-randomize_attack_sys,randomize_attack_sys)   
+              if(sys_a < 1){
+                sys_a = 1
+            }
+            if(sys_a > 499){
+                sys_a = 499
+            }
+            sys_b=planets_range[i][1] + Random(-randomize_attack_sys,randomize_attack_sys)   
+              if(sys_b < 1){
+                sys_b = 1
+            }
+            if(sys_b > 499){
+                sys_b = 499
+            }
+           
+            NewFarmingSession(planet.GetID(), galaxy,  sys_a,  sys_b, esp_probes_for_scans, 0,min_ressources_to_attack, 0, 0, 0, 0, min_rank_to_attack, false, false, false, false, HUNDRED_PERCENT, 1, 2, 3)
+            }
+        i = i+1
+    }
+}
+CronExec(time,autofarm) // Execute callback every day at midnight
+<-OnQuitCh
+
+//Auto Bauer Deffens / Schiffe
+// Einstellungen----------------------------------------------------------------
+factors = [40,10,5,10,5,1,5,1,1] 
+// Beispiel für 10 Planeten 3 Baut das 3 fache der eingestellten Werte 0 buat 0 der Eingestellten Werte 
+//Baut die unten eingestellten Werte. Planet 3 wird nix bauen. Planet 1 wird das 3 fache bauen.
+// Anzahl Deff / Schiffe auf Planeten (immer nach bau auf Anzahl X)
+//------------------------------------------------------------------------------
+//Verteidigung
+rocket_launcher_desired = 7500    //Raketenwerfer
+light_laser_desired= 6500         //LeichteLaser
+heavy_laser_desired= 600         //Schwere Läser
+gauss_cannon_desired= 200       //Gaußkanone
+ion_cannon_desired=  600       //Ionengeschütz
+plasma_desired= 70              //Plasmawerfer
+anti_balistic_desired = 0      //Abfangraketen
+//------------------------------------------------------------------------------
+//Schildkuppeln werden immer Gebaut!
+//------------------------------------------------------------------------------
+//Kampfschiffe
+light_fighter_desired = 0     //Leichte Jäger
+heavy_fighter_desired = 0      //Schwere Jäger
+cruiser_desired = 0            //Kreuzer
+battleship_desired = 0         //Schlachtschiff
+battlecruiser_desired = 0      //Schlachtkreuzer
+bomber_desired = 0             //Bomber
+destroyer_desired = 0          //Zerstörer
+deathstar_desired = 0          //Todesstern - R.I.P 
+reaper_desired = 0             //Reaper (Genberal Benötigt)
+pathfinder_desired = 0         //Pathfinder (Explorer benötigt)
+//------------------------------------------------------------------------------
+//Zivileschiffe
+small_cargo_desired = 0        //Kleine Transporter
+large_cargo_desired = 0        //Große Transporter
+colony_ship_desired = 0        //Kolonieschiff
+recycler_desired = 0           //Recycler
+espionage_probe_desired = 0    //Spionagesonde
+solar_satteliet_desired = 0    //SolarSatellite
+crawler_desired = 0          //Crawler  (Kollector benötigt)
+//------------------------------------------------------------------------------
+checkIntervalDeff = 370 // Checkt alle 370 minuten die Verteidigung und Flotten Stärke
+CheckIntervalShip = 940 // Checkt alle 940 minuten die Schiffanzahl auf den Planten und baut sie nach wenn welche fehlen
+storageInterval = 420 // Checkt alle 420 min ob Speicher gebaut werden müssen 
+// Einstellungen Ende-----------------------------------------------------------
+
+Planets = GetPlanets()
+
+//ERROR AUSGABE
+//Gibt den Fehler aus und Stopt das script bei einem Fehler
+if(len(factors) != len(Planets)){
+    print("Die Anzahl deiner factoren und Planeten stimmen nicht überein!!")
+}
+factors[len(Planets)-1]
+
+for{
+    i=0;
+    for planet in Planets {
+        celestial = GetCachedCelestial(planet.Coordinate)
+        allDefense, _ = celestial.GetDefense()
+        allShips, _ = celestial.GetShips()
+        
+        productionLine = GetProduction(planet.ID)[0]
+        if(len(productionLine)) == 0{
+            //Verteidigung auto bau --------------------------------------------
+             if(allDefense.RocketLauncher < Round(rocket_launcher_desired * factors[i])){
+                celestial.Build(ROCKETLAUNCHER, Round(rocket_launcher_desired * factors[i]) - allDefense.RocketLauncher)
+            }
+            if(allDefense.LightLaser <  Round(light_laser_desired*factors[i])){
+                 celestial.Build(LIGHTLASER,Round(light_laser_desired*factors[i])- allDefense.LightLaser)
+            }
+            if(allDefense.HeavyLaser < Round(heavy_laser_desired*factors[i])){
+                 celestial.Build(HEAVYLASER,Round(heavy_laser_desired*factors[i])- allDefense.HeavyLaser)
+            }
+            if(allDefense.GaussCannon < Round(gauss_cannon_desired*factors[i])){
+                celestial.Build(GAUSSCANNON,Round(gauss_cannon_desired*factors[i])- allDefense.GaussCannon)
+            }
+            if(allDefense.IonCannon< Round(ion_cannon_desired*factors[i])){
+                celestial.Build(IONCANNON,Round(ion_cannon_desired*factors[i]) - allDefense.IonCannon)
+            }
+            if(allDefense.PlasmaTurret< Round(plasma_desired*factors[i])){
+                celestial.Build(PLASMATURRET,Round(plasma_desired*factors[i])- allDefense.PlasmaTurret)
+            }
+            if(allDefense.SmallShieldDome == 0){
+               celestial.Build(SMALLSHIELDDOME,1)
+            }
+            if(allDefense.LargeShieldDome == 0){
+                celestial.Build(LARGESHIELDDOME,1)
+            }
+            if(allDefense.AntiBallisticMissiles  < Round(anti_balistic_desired*factors[i])){
+               celestial.Build(ANTIBALLISTICMISSILES,Round(anti_balistic_desired*factors[i]) - allDefense.AntiBallisticMissiles )
+            }
+        }
+        i = i+1
+    }
+   Sleep(checkIntervalDeff * 60 * 1000) 
+}
+for{
+    i=0;
+    for planet in Planets {
+        celestial = GetCachedCelestial(planet.Coordinate)
+        allDefense, _ = celestial.GetDefense()
+        allShips, _ = celestial.GetShips()
+        
+        productionLine = GetProduction(planet.ID)[0]
+        if(len(productionLine)) == 0{
+            //Kampf Schiffe auto bau -------------------------------------------
+            if(allShips.LightFighter < Round(light_fighter_desired * factors[i])){
+                celestial.Build(LIGHTFIGHTER, Round(light_fighter_desired * factors[i]) - allShips.LightFighter)               
+            }
+            if(allShips.HeavyFighter < Round(heavy_fighter_desired * factors[i])){
+                celestial.Build(HEAVYFIGHTER, Round(heavy_fighter_desired * factors[i]) - allShips.HeavyFighter)               
+            }
+            if(allShips.Cruiser < Round(cruiser_desired * factors[i])){
+                celestial.Build(CRUISER, Round(cruiser_desired * factors[i]) - allShips.Cruiser)               
+            }   
+            if(allShips.Battleship < Round(battleship_desired * factors[i])){
+                celestial.Build(BATTLESHIP, Round(battleship_desired * factors[i]) - allShips.Battleship)               
+            }            
+            if(allShips.Battlecruiser < Round(battlecruiser_desired * factors[i])){
+                celestial.Build(BATTLECRUISER, Round(battlecruiser_desired * factors[i]) - allShips.Battlecruiser)               
+            }
+            if(allShips.Bomber < Round(bomber_desired * factors[i])){
+                celestial.Build(BOMBER, Round(bomber_desired * factors[i]) - allShips.Bomber)               
+            } 
+            if(allShips.Destroyer < Round(destroyer_desired * factors[i])){
+                celestial.Build(DESTROYER, Round(destroyer_desired * factors[i]) - allShips.Destroyer)               
+            }
+            if(allShips.Deathstar < Round(deathstar_desired * factors[i])){
+                celestial.Build(DEATHSTAR, Round(deathstar_desired * factors[i]) - allShips.Deathstar)               
+            } 
+            if(allShips.Reaper < Round(reaper_desired * factors[i])){
+                celestial.Build(REAPER, Round(reaper_desired * factors[i]) - allShips.Reaper)               
+            }            
+            if(allShips.Pathfinder < Round(pathfinder_desired * factors[i])){
+                celestial.Build(PATHFINDER, Round(pathfinder_desired * factors[i]) - allShips.Pathfinder)               
+            }
+            if(allShips.Reaper < Round(reaper_desired * factors[i])){
+                celestial.Build(REAPER, Round(reaper_desired * factors[i]) - allShips.Reaper)               
+            }
+            //Zivile Schiffe auto bau ------------------------------------------
+            if(allShips.SmallCargo < Round(small_cargo_desired * factors[i])){
+                celestial.Build(SMALLCARGO, Round(small_cargo_desired * factors[i]) - allShips.SmallCargo)               
+            }//---------------------------------------
+             if(allShips.LargeCargo < Round(large_cargo_desired * factors[i])){
+                celestial.Build(LARGECARGO, Round(large_cargo_desired * factors[i]) - allShips.LargeCargo)               
+            }
+             if(allShips.ColonyShip < Round(colony_ship_desired * factors[i])){
+                celestial.Build(COLONYSHIP, Round(colony_ship_desired * factors[i]) - allShips.ColonyShip)               
+            }
+             if(allShips.Recycler < Round(recycler_desired * factors[i])){
+                celestial.Build(RECYCLER, Round(recycler_desired * factors[i]) - allShips.Recycler)               
+            }
+             if(allShips.EspionageProbe < Round(espionage_probe_desired * factors[i])){
+                celestial.Build(ESPIONAGEPROBE, Round(espionage_probe_desired * factors[i]) - allShips.EspionageProbe)               
+            }
+             if(allShips.SolarSatellite < Round(solar_satteliet_desired * factors[i])){
+                celestial.Build(SOLARSATELLITE, Round(solar_satteliet_desired * factors[i]) - allShips.SolarSatellite)               
+            }
+             if(allShips.Crawler < Round(crawler_desired * factors[i])){
+                celestial.Build(CRAWLER, Round(crawler_desired * factors[i]) - allShips.Crawler)               
+            }
+        }
+        i = i+1
+    }
+   Sleep(CheckIntervalShip * 60 * 1000) 
+}
